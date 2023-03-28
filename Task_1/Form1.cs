@@ -15,7 +15,7 @@ namespace Task_1
 
             for (int i = 0; i < drives.Length; i++)
             {
-                arrayFiles[i] = GetDirectoryFiles(drives[i], "*.tttt", SearchOption.AllDirectories);
+                arrayFiles[i] = GetDirectoryFiles(drives[i], "*.txt", SearchOption.AllDirectories);
             }
 
             IEnumerable<string>? files = JoinMany(arrayFiles);
@@ -26,29 +26,62 @@ namespace Task_1
                 Environment.Exit(-1);
             }
 
-            if (files != null)
+            progressBar.Maximum = files.Count();
+            List<string> source = new();
+            foreach (var file in files)
             {
-                progressBar.Maximum = files.Count();
-                foreach (var file in files)
+                if (SearchWords(file, "абракадабра1", "абракадабра2", "абракадабра3"))
                 {
-                    if (SearchWords(file, "word"))
+                    txtResultSearch.Text += file + Environment.NewLine;
+                    source.Add(file);
+                }
+                progressBar.Value++;
+            }
+
+            CopyFiles(source, progressBar, labelProgressBar);
+        }
+
+        static void CopyFiles(List<string> source, ProgressBar progressBar, Label label)
+        {
+            try
+            {
+                if (Directory.Exists(Directory.GetCurrentDirectory() + "\\CopyFolder\\"))
+                {
+                    Directory.Delete(Directory.GetCurrentDirectory() + "\\CopyFolder\\", true);
+                }
+                var newDirectory = Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\CopyFolder\\");
+                if (source.Count > 0)
+                {
+                    progressBar.Maximum = source.Count;
+                    progressBar.Value = 0;
+                    label.Text = "CopyFiles";
+                    for (int i = 0; i < source.Count; i++)
                     {
-                        txtResultSearch.Text += file + Environment.NewLine;
+                        File.Copy(source[i], newDirectory + Path.GetFileName(source[i]), false);
+                        progressBar.Value++;
                     }
-                    progressBar.Value++;
+                    while (progressBar.Value != progressBar.Maximum)
+                    {
+                        progressBar.Value++;
+                    }
                 }
             }
+            catch { }
         }
 
         static string[] GetDrives()
         {
-            string[] drives = Directory.GetLogicalDrives();
-            if (drives.Length == 0)
+            List<string> drives = new();
+            DriveInfo[] infoDrives = DriveInfo.GetDrives();
+
+            foreach (var item in infoDrives)
             {
-                MessageBox.Show("Директории не найдены!");
-                Environment.Exit(-1);
+                if (item.IsReady)
+                {
+                    drives.Add(item.Name);
+                }
             }
-            return drives;
+            return drives.ToArray();
         }
 
         static IEnumerable<T> JoinMany<T>(params IEnumerable<T>[] array)
@@ -57,15 +90,23 @@ namespace Task_1
             return final ?? Enumerable.Empty<T>();
         }
 
-        static bool SearchWords(string file, string word)
+        static bool SearchWords(string file, params string[] words)
         {
-            foreach (var line in File.ReadLines(file))
+            try
             {
-                if (line.Contains(word, StringComparison.OrdinalIgnoreCase))
+                foreach (var line in File.ReadLines(file))
                 {
-                    return true;
+                    foreach (var word in words)
+                    {
+                        if (line.Contains(word, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+                    }
                 }
             }
+            catch { }
+
             return false;
         }
 
