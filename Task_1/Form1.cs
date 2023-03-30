@@ -83,10 +83,7 @@ namespace Task_1
                     {
                         File.Copy(source[i], newDirectory + Path.GetFileName(source[i]));
                         ReplaceWords(newDirectory + Path.GetFileName(source[i]), words);
-                        new Thread(new ThreadStart(
-                            () =>
-                            txtResultSearch.Text += newDirectory + Path.GetFileName(source[i]) + Environment.NewLine))
-                            .Start();
+                        txtResultSearch.Text += newDirectory + Path.GetFileName(source[i]) + Environment.NewLine;
                     }
                     catch {}
                     progressBar.Value++;
