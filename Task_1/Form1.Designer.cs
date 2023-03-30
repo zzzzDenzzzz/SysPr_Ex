@@ -93,7 +93,7 @@
 
         private Button btnStart;
         private ProgressBar progressBar;
-        private TextBox txtResultSearch;
         private Label labelProgressBar;
+        public TextBox txtResultSearch;
     }
 }

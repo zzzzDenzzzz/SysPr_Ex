@@ -2,6 +2,8 @@ namespace Task_1
 {
     public partial class Form1 : Form
     {
+        readonly string[] words = { "абракадабра1", "абракадабра2", "абракадабра3" };
+
         public Form1()
         {
             InitializeComponent();
@@ -9,6 +11,11 @@ namespace Task_1
 
         void BtnStart_Click(object sender, EventArgs e)
         {
+            btnStart.Enabled = false;
+            progressBar.Maximum = 0;
+            progressBar.Value = 0;
+            labelProgressBar.Text = "Search .txt files and forbidden words";
+
             string[] drives = GetDrives();
 
             IEnumerable<string>[] arrayFiles = new IEnumerable<string>[drives.Length];
@@ -30,18 +37,29 @@ namespace Task_1
             List<string> source = new();
             foreach (var file in files)
             {
-                if (SearchWords(file, "абракадабра1", "абракадабра2", "абракадабра3"))
+                if (SearchWords(file, words))
                 {
-                    txtResultSearch.Text += file + Environment.NewLine;
                     source.Add(file);
                 }
                 progressBar.Value++;
             }
 
-            CopyFiles(source, progressBar, labelProgressBar);
+            CopyFilesAndReplaceWord(source, progressBar, labelProgressBar, words);
+
+            btnStart.Enabled = true;
         }
 
-        static void CopyFiles(List<string> source, ProgressBar progressBar, Label label)
+        static async void ReplaceWords(string path, params string[] words)
+        {
+            string text = await File.ReadAllTextAsync(path);
+            foreach (var word in words)
+            {
+                text = text.Replace(word, "*******");
+            }
+            await File.WriteAllTextAsync(path, text);
+        }
+
+        void CopyFilesAndReplaceWord(List<string> source, ProgressBar progressBar, Label label, params string[] words)
         {
             try
             {
@@ -49,24 +67,31 @@ namespace Task_1
                 {
                     Directory.Delete(Directory.GetCurrentDirectory() + "\\CopyFolder\\", true);
                 }
-                var newDirectory = Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\CopyFolder\\");
-                if (source.Count > 0)
-                {
-                    progressBar.Maximum = source.Count;
-                    progressBar.Value = 0;
-                    label.Text = "CopyFiles";
-                    for (int i = 0; i < source.Count; i++)
-                    {
-                        File.Copy(source[i], newDirectory + Path.GetFileName(source[i]), false);
-                        progressBar.Value++;
-                    }
-                    while (progressBar.Value != progressBar.Maximum)
-                    {
-                        progressBar.Value++;
-                    }
-                }
             }
             catch { }
+
+            var newDirectory = Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\CopyFolder\\");
+
+            if (source.Count > 0)
+            {
+                progressBar.Maximum = source.Count;
+                progressBar.Value = 0;
+                label.Text = "CopyFiles";
+                for (int i = 0; i < source.Count; i++)
+                {
+                    try
+                    {
+                        File.Copy(source[i], newDirectory + Path.GetFileName(source[i]));
+                        ReplaceWords(newDirectory + Path.GetFileName(source[i]), words);
+                        new Thread(new ThreadStart(
+                            () =>
+                            txtResultSearch.Text += newDirectory + Path.GetFileName(source[i]) + Environment.NewLine))
+                            .Start();
+                    }
+                    catch {}
+                    progressBar.Value++;
+                }
+            }
         }
 
         static string[] GetDrives()
